@@ -38,6 +38,6 @@ Update the `appsettings.json`, or create your own `appsettings.Development.json`
 
 ## To do
 
-[ ] Fix non hardcoded PAT tokens in the environment file
-[ ] Provide YAML example for deployment
-[ ] Create Grafana dashboard as Json
+- [ ] Fix non hardcoded PAT tokens in the environment file
+- [ ] Provide YAML example for deployment
+- [ ] Create Grafana dashboard as Json
