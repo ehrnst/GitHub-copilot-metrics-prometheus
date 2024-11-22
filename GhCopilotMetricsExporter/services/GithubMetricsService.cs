@@ -37,6 +37,27 @@ namespace GhCopilotMetricsExporter.Services
             _totalActiveChatUsers = Metrics.CreateGauge("github_copilot_total_active_chat_users", "Total number of active chat users.");
         }
 
+        private readonly Gauge _suggestionsCountByLanguageEditor = Metrics.CreateGauge("github_copilot_suggestions_count_by_language_editor", "Suggestions count by language and editor", new GaugeConfiguration
+        {
+            LabelNames = new[] { "language", "editor" }
+        });
+        private readonly Gauge _acceptancesCountByLanguageEditor = Metrics.CreateGauge("github_copilot_acceptances_count_by_language_editor", "Acceptances count by language and editor", new GaugeConfiguration
+        {
+            LabelNames = new[] { "language", "editor" }
+        });
+        private readonly Gauge _linesSuggestedByLanguageEditor = Metrics.CreateGauge("github_copilot_lines_suggested_by_language_editor", "Lines suggested by language and editor", new GaugeConfiguration
+        {
+            LabelNames = new[] { "language", "editor" }
+        });
+        private readonly Gauge _linesAcceptedByLanguageEditor = Metrics.CreateGauge("github_copilot_lines_accepted_by_language_editor", "Lines accepted by language and editor", new GaugeConfiguration
+        {
+            LabelNames = new[] { "language", "editor" }
+        });
+        private readonly Gauge _activeUsersByLanguageEditor = Metrics.CreateGauge("github_copilot_active_users_by_language_editor", "Active users by language and editor", new GaugeConfiguration
+        {
+            LabelNames = new[] { "language", "editor" }
+        });
+
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             while (!stoppingToken.IsCancellationRequested)
@@ -68,6 +89,15 @@ namespace GhCopilotMetricsExporter.Services
                             _totalChatAcceptances.Set(latestMetrics.TotalChatAcceptances);
                             _totalChatTurns.Set(latestMetrics.TotalChatTurns);
                             _totalActiveChatUsers.Set(latestMetrics.TotalActiveChatUsers);
+
+                            foreach (var breakdown in latestMetrics.Breakdown)
+                                {
+                                    _suggestionsCountByLanguageEditor.WithLabels(breakdown.Language, breakdown.Editor).Set(breakdown.SuggestionsCount);
+                                    _acceptancesCountByLanguageEditor.WithLabels(breakdown.Language, breakdown.Editor).Set(breakdown.AcceptancesCount);
+                                    _linesSuggestedByLanguageEditor.WithLabels(breakdown.Language, breakdown.Editor).Set(breakdown.LinesSuggested);
+                                    _linesAcceptedByLanguageEditor.WithLabels(breakdown.Language, breakdown.Editor).Set(breakdown.LinesAccepted);
+                                    _activeUsersByLanguageEditor.WithLabels(breakdown.Language, breakdown.Editor).Set(breakdown.ActiveUsers);
+                                }
                         }
                     }
                     else
