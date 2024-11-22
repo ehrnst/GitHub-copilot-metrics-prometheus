@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ghcopilot-metrics-exporter
+  namespace: dev
+  labels:
+    app: ghcopilot-metrics-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ghcopilot-metrics-exporter
+  template:
+    metadata:
+      labels:
+        app: ghcopilot-metrics-exporter
+    spec:
+      containers:
+      - name: ghcopilot-metrics-exporter
+        image: ''
+        resources:
+          limits:
+            memory: "256Mi"
+            cpu: "100m"
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+        ports:
+        - name: http
+          containerPort: 8080
+---
+# azure managed prometheus pod monitor
+
+apiVersion: azmonitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: ghcopilot-metrics-exporter
+  namespace: dev
+spec:
+  podMetricsEndpoints:
+  - interval: 12h
+    port: http
+    path: /metrics
+  selector:
+    matchLabels:
+      app: ghcopilot-metrics-exporter
