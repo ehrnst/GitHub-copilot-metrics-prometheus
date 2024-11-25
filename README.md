@@ -1,5 +1,7 @@
 # GitHub Copilot Metrics Exporter Prometheus
 
+![Copilot metrics grafana dashboard](grafana-dashboard.png)
+
 A simple background worker written in .NET which will expose [Copilot usage data](https://docs.github.com/en/rest/copilot/copilot-usage?apiVersion=2022-11-28#get-a-summary-of-copilot-usage-for-organization-members) as Prometheus metrics. Once deployed to a Kubernetes cluster with scraping config, metrics should be available and can be viewed in Prometheus or Grafana.
 
 ## Features
