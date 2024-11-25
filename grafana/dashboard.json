@@ -24,7 +24,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "sf-prometheus-dev"
+          "uid": ""
         },
         "fieldConfig": {
           "defaults": {
@@ -98,7 +98,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "sf-prometheus-dev"
+          "uid": ""
         },
         "description": "",
         "fieldConfig": {
@@ -149,7 +149,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "sf-prometheus-dev"
+              "uid": ""
             },
             "editorMode": "code",
             "exemplar": false,
@@ -174,7 +174,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "sf-prometheus-dev"
+          "uid": ""
         },
         "description": "",
         "fieldConfig": {
@@ -263,7 +263,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "sf-prometheus-dev"
+              "uid": ""
             },
             "editorMode": "code",
             "expr": "github_copilot_total_acceptances_count / github_copilot_total_suggestions_count * 100",
@@ -286,7 +286,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "sf-prometheus-dev"
+          "uid": ""
         },
         "description": "",
         "fieldConfig": {
@@ -337,7 +337,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "sf-prometheus-dev"
+              "uid": ""
             },
             "editorMode": "code",
             "exemplar": false,
@@ -356,7 +356,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "sf-prometheus-dev"
+          "uid": ""
         },
         "fieldConfig": {
           "defaults": {
@@ -426,7 +426,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "sf-prometheus-dev"
+              "uid": ""
             },
             "editorMode": "code",
             "expr": "sum by (language) (github_copilot_lines_suggested_by_language_editor)",
@@ -443,7 +443,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "sf-prometheus-dev"
+          "uid": ""
         },
         "description": "",
         "fieldConfig": {
@@ -531,7 +531,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "sf-prometheus-dev"
+              "uid": ""
             },
             "editorMode": "code",
             "expr": "github_copilot_total_lines_suggested",
@@ -554,7 +554,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "sf-prometheus-dev"
+          "uid": ""
         },
         "description": "",
         "fieldConfig": {
@@ -642,7 +642,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "sf-prometheus-dev"
+              "uid": ""
             },
             "editorMode": "code",
             "expr": "github_copilot_total_chat_turns",
@@ -665,7 +665,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "sf-prometheus-dev"
+          "uid": ""
         },
         "description": "",
         "fieldConfig": {
@@ -753,7 +753,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "sf-prometheus-dev"
+              "uid": ""
             },
             "editorMode": "code",
             "expr": "sum(github_copilot_total_active_chat_users + github_copilot_total_active_users)",

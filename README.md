@@ -14,30 +14,15 @@ A simple background worker written in .NET which will expose [Copilot usage data
 
 ## Getting Started
 
-### Configuration
+### Deploy
 
 Create your PAT token as per [GitHub's official documentation](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-fine-grained-personal-access-token)
 
-Update the `appsettings.json`, or create your own `appsettings.Development.json` file in the `GhCopilotMetricsExporter` directory with your GitHub token and organization name:
+Create a secret in your k8s namespace with values for organization and PAT token
+`kubectl create secret generic github-copilot-secrets --from-literal=token=ghp_**** --from-literal=organization=Adatum-no -n <namespace>`
 
-```json
-{
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information",
-      "Microsoft.AspNetCore": "Warning"
-    }
-  },
-  "AllowedHosts": "*",
-  "GitHub": {
-    "Token": "your-token",
-    "Organization": "your-organization-name"
-  }
-}
-```
+Chose which manifest file you want to deploy. One uses Azure's custom `PodMonitor` or you can use the default deployment with Prometheus scraping annotations.
 
-## To do
+### Grafana
 
-- [ ] Fix non hardcoded PAT tokens in the environment file
-- [ ] Provide YAML example for deployment
-- [ ] Create Grafana dashboard as Json
+A simple Grafana dashboard is provided as a starting point.

@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
       - name: ghcopilot-metrics-exporter
-        image: ehrnst/gh-copilot-metrics-exporter:04
+        image: ehrnst/gh-copilot-metrics-exporter:06
         resources:
           limits:
             memory: "256Mi"

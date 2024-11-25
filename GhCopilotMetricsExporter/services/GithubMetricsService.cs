@@ -64,14 +64,20 @@ namespace GhCopilotMetricsExporter.Services
             {
                 try
                 {
+                    var githubToken = Environment.GetEnvironmentVariable("GITHUB_TOKEN");
+                    var githubOrganizationName = Environment.GetEnvironmentVariable("GITHUB_ORGANIZATION_NAME");
+
+                    _logger.LogInformation($"Querying {githubOrganizationName} for Copilot usage metrics...");
+
                     var client = _httpClientFactory.CreateClient();
                     client.DefaultRequestHeaders.Clear();
                     client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
-                    client.DefaultRequestHeaders.Add("Authorization", $"token {_configuration["GitHub:Token"]}");
+                    client.DefaultRequestHeaders.Add("Authorization", $"token {githubToken}");
                     client.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2022-11-28");
-                    client.DefaultRequestHeaders.Add("User-Agent", $"{_configuration["GitHub:Organization"]}-copilot-metrics-exporter");
+                    client.DefaultRequestHeaders.Add("User-Agent", $"{githubOrganizationName}-copilot-metrics-exporter");
 
-                    var response = await client.GetAsync($"https://api.github.com/orgs/{_configuration["GitHub:Organization"]}/copilot/usage", stoppingToken);
+
+                    var response = await client.GetAsync($"https://api.github.com/orgs/{githubOrganizationName}/copilot/usage", stoppingToken);
 
                     if (response.IsSuccessStatusCode)
                     {
