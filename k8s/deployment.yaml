@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ghcopilot-metrics-exporter
-  namespace: dev
   labels:
     app: ghcopilot-metrics-exporter
 spec:
@@ -28,6 +27,17 @@ spec:
         ports:
         - name: http
           containerPort: 8080
+        env:
+        - name: GITHUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: github-copilot-secrets
+              key: token
+        - name: GITHUB_ORGANIZATION_NAME
+          valueFrom:
+            secretKeyRef:
+              name: github-copilot-secrets
+              key: organization
 ---
 # azure managed prometheus pod monitor
 
@@ -35,10 +45,9 @@ apiVersion: azmonitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
   name: ghcopilot-metrics-exporter
-  namespace: dev
 spec:
   podMetricsEndpoints:
-  - interval: 12h
+  - interval: 12m
     port: http
     path: /metrics
   selector:
