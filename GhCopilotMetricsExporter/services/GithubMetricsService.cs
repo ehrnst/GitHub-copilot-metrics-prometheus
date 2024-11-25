@@ -37,20 +37,47 @@ namespace GhCopilotMetricsExporter.Services
             _totalActiveChatUsers = Metrics.CreateGauge("github_copilot_total_active_chat_users", "Total number of active chat users.");
         }
 
+        private readonly Gauge _suggestionsCountByLanguageEditor = Metrics.CreateGauge("github_copilot_suggestions_count_by_language_editor", "Suggestions count by language and editor", new GaugeConfiguration
+        {
+            LabelNames = new[] { "language", "editor" }
+        });
+        private readonly Gauge _acceptancesCountByLanguageEditor = Metrics.CreateGauge("github_copilot_acceptances_count_by_language_editor", "Acceptances count by language and editor", new GaugeConfiguration
+        {
+            LabelNames = new[] { "language", "editor" }
+        });
+        private readonly Gauge _linesSuggestedByLanguageEditor = Metrics.CreateGauge("github_copilot_lines_suggested_by_language_editor", "Lines suggested by language and editor", new GaugeConfiguration
+        {
+            LabelNames = new[] { "language", "editor" }
+        });
+        private readonly Gauge _linesAcceptedByLanguageEditor = Metrics.CreateGauge("github_copilot_lines_accepted_by_language_editor", "Lines accepted by language and editor", new GaugeConfiguration
+        {
+            LabelNames = new[] { "language", "editor" }
+        });
+        private readonly Gauge _activeUsersByLanguageEditor = Metrics.CreateGauge("github_copilot_active_users_by_language_editor", "Active users by language and editor", new GaugeConfiguration
+        {
+            LabelNames = new[] { "language", "editor" }
+        });
+
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
                 {
+                    var githubToken = Environment.GetEnvironmentVariable("GITHUB_TOKEN");
+                    var githubOrganizationName = Environment.GetEnvironmentVariable("GITHUB_ORGANIZATION_NAME");
+
+                    _logger.LogInformation($"Querying {githubOrganizationName} for Copilot usage metrics...");
+
                     var client = _httpClientFactory.CreateClient();
                     client.DefaultRequestHeaders.Clear();
                     client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
-                    client.DefaultRequestHeaders.Add("Authorization", $"token {_configuration["GitHub:Token"]}");
+                    client.DefaultRequestHeaders.Add("Authorization", $"token {githubToken}");
                     client.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2022-11-28");
-                    client.DefaultRequestHeaders.Add("User-Agent", $"{_configuration["GitHub:Organization"]}-copilot-metrics-exporter");
+                    client.DefaultRequestHeaders.Add("User-Agent", $"{githubOrganizationName}-copilot-metrics-exporter");
 
-                    var response = await client.GetAsync($"https://api.github.com/orgs/{_configuration["GitHub:Organization"]}/copilot/usage", stoppingToken);
+
+                    var response = await client.GetAsync($"https://api.github.com/orgs/{githubOrganizationName}/copilot/usage", stoppingToken);
 
                     if (response.IsSuccessStatusCode)
                     {
@@ -68,6 +95,15 @@ namespace GhCopilotMetricsExporter.Services
                             _totalChatAcceptances.Set(latestMetrics.TotalChatAcceptances);
                             _totalChatTurns.Set(latestMetrics.TotalChatTurns);
                             _totalActiveChatUsers.Set(latestMetrics.TotalActiveChatUsers);
+
+                            foreach (var breakdown in latestMetrics.Breakdown)
+                                {
+                                    _suggestionsCountByLanguageEditor.WithLabels(breakdown.Language, breakdown.Editor).Set(breakdown.SuggestionsCount);
+                                    _acceptancesCountByLanguageEditor.WithLabels(breakdown.Language, breakdown.Editor).Set(breakdown.AcceptancesCount);
+                                    _linesSuggestedByLanguageEditor.WithLabels(breakdown.Language, breakdown.Editor).Set(breakdown.LinesSuggested);
+                                    _linesAcceptedByLanguageEditor.WithLabels(breakdown.Language, breakdown.Editor).Set(breakdown.LinesAccepted);
+                                    _activeUsersByLanguageEditor.WithLabels(breakdown.Language, breakdown.Editor).Set(breakdown.ActiveUsers);
+                                }
                         }
                     }
                     else

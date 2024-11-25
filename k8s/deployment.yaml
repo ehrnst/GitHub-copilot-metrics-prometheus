@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ghcopilot-metrics-exporter
+  labels:
+    app: ghcopilot-metrics-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ghcopilot-metrics-exporter
+  template:
+    metadata:
+      labels:
+        app: ghcopilot-metrics-exporter
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "8080"
+    spec:
+      containers:
+      - name: ghcopilot-metrics-exporter
+        image: ehrnst/gh-copilot-metrics-exporter:06
+        resources:
+          limits:
+            memory: "256Mi"
+            cpu: "100m"
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+        ports:
+        - name: http
+          containerPort: 8080
+        env:
+        - name: GITHUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: github-copilot-secrets
+              key: token
+        - name: GITHUB_ORGANIZATION_NAME
+          valueFrom:
+            secretKeyRef:
+              name: github-copilot-secrets
+              key: organization
