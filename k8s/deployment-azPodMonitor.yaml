@@ -13,10 +13,6 @@ spec:
     metadata:
       labels:
         app: ghcopilot-metrics-exporter
-      annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/path: "/metrics"
-        prometheus.io/port: "8080"
     spec:
       containers:
       - name: ghcopilot-metrics-exporter
@@ -42,3 +38,18 @@ spec:
             secretKeyRef:
               name: github-copilot-secrets
               key: organization
+---
+# azure managed prometheus pod monitor
+
+apiVersion: azmonitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: ghcopilot-metrics-exporter
+spec:
+  podMetricsEndpoints:
+  - interval: 12h
+    port: http
+    path: /metrics
+  selector:
+    matchLabels:
+      app: ghcopilot-metrics-exporter
