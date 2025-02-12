@@ -12,14 +12,14 @@ namespace GhCopilotMetricsExporter.Services
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<GitHubMetricsService> _logger;
         private readonly IConfiguration _configuration;
-        private readonly Gauge _totalSuggestionsCount;
-        private readonly Gauge _totalAcceptancesCount;
+        private readonly Gauge _totalActiveUsers;
+        private readonly Gauge _totalEngagedUsers;
+        private readonly Gauge _totalSuggestions;
+        private readonly Gauge _totalAcceptances;
         private readonly Gauge _totalLinesSuggested;
         private readonly Gauge _totalLinesAccepted;
-        private readonly Gauge _totalActiveUsers;
-        private readonly Gauge _totalChatAcceptances;
-        private readonly Gauge _totalChatTurns;
-        private readonly Gauge _totalActiveChatUsers;
+        private readonly Gauge _totalChatEngagedUsers;
+        private readonly Gauge _totalChats;
 
         public GitHubMetricsService(IHttpClientFactory httpClientFactory, ILogger<GitHubMetricsService> logger, IConfiguration configuration)
         {
@@ -27,14 +27,14 @@ namespace GhCopilotMetricsExporter.Services
             _logger = logger;
             _configuration = configuration;
 
-            _totalSuggestionsCount = Metrics.CreateGauge("github_copilot_total_suggestions_count", "Total number of Copilot suggestions.");
-            _totalAcceptancesCount = Metrics.CreateGauge("github_copilot_total_acceptances_count", "Total number of Copilot acceptances.");
-            _totalLinesSuggested = Metrics.CreateGauge("github_copilot_total_lines_suggested", "Total number of lines suggested by Copilot.");
-            _totalLinesAccepted = Metrics.CreateGauge("github_copilot_total_lines_accepted", "Total number of lines accepted by Copilot.");
-            _totalActiveUsers = Metrics.CreateGauge("github_copilot_total_active_users", "Total number of active users.");
-            _totalChatAcceptances = Metrics.CreateGauge("github_copilot_total_chat_acceptances", "Total number of chat acceptances.");
-            _totalChatTurns = Metrics.CreateGauge("github_copilot_total_chat_turns", "Total number of chat turns.");
-            _totalActiveChatUsers = Metrics.CreateGauge("github_copilot_total_active_chat_users", "Total number of active chat users.");
+            _totalActiveUsers = Metrics.CreateGauge("github_copilot_total_active_users", "Total number of active users");
+            _totalEngagedUsers = Metrics.CreateGauge("github_copilot_total_engaged_users", "Total number of engaged users");
+            _totalSuggestions = Metrics.CreateGauge("github_copilot_total_suggestions", "Total number of code suggestions");
+            _totalAcceptances = Metrics.CreateGauge("github_copilot_total_acceptances", "Total number of code acceptances");
+            _totalLinesSuggested = Metrics.CreateGauge("github_copilot_total_lines_suggested", "Total number of lines suggested");
+            _totalLinesAccepted = Metrics.CreateGauge("github_copilot_total_lines_accepted", "Total number of lines accepted");
+            _totalChatEngagedUsers = Metrics.CreateGauge("github_copilot_total_chat_engaged_users", "Total number of chat engaged users");
+            _totalChats = Metrics.CreateGauge("github_copilot_total_chats", "Total number of chats");
         }
 
         private readonly Gauge _suggestionsCountByLanguageEditor = Metrics.CreateGauge("github_copilot_suggestions_count_by_language_editor", "Suggestions count by language and editor", new GaugeConfiguration
@@ -77,33 +77,72 @@ namespace GhCopilotMetricsExporter.Services
                     client.DefaultRequestHeaders.Add("User-Agent", $"{githubOrganizationName}-copilot-metrics-exporter");
 
 
-                    var response = await client.GetAsync($"https://api.github.com/orgs/{githubOrganizationName}/copilot/usage", stoppingToken);
+                    var response = await client.GetAsync($"https://api.github.com/orgs/{githubOrganizationName}/copilot/metrics", stoppingToken);
 
                     if (response.IsSuccessStatusCode)
                     {
                         var metrics = await response.Content.ReadFromJsonAsync<List<CopilotUsageMetrics>>(stoppingToken);
                         if (metrics != null)
                         {
-                            // Sort by day and select the most recent entry
-                            var latestMetrics = metrics.OrderByDescending(m => m.Day).First();
+                            var latestMetrics = metrics.OrderByDescending(m => m.Date).First();
 
-                            _totalSuggestionsCount.Set(latestMetrics.TotalSuggestionsCount);
-                            _totalAcceptancesCount.Set(latestMetrics.TotalAcceptancesCount);
-                            _totalLinesSuggested.Set(latestMetrics.TotalLinesSuggested);
-                            _totalLinesAccepted.Set(latestMetrics.TotalLinesAccepted);
                             _totalActiveUsers.Set(latestMetrics.TotalActiveUsers);
-                            _totalChatAcceptances.Set(latestMetrics.TotalChatAcceptances);
-                            _totalChatTurns.Set(latestMetrics.TotalChatTurns);
-                            _totalActiveChatUsers.Set(latestMetrics.TotalActiveChatUsers);
+                            _totalEngagedUsers.Set(latestMetrics.TotalEngagedUsers);
 
-                            foreach (var breakdown in latestMetrics.Breakdown)
+                            // Aggregate IDE metrics
+                            var ideMetrics = latestMetrics.CopilotIdeCodeCompletions;
+                            int totalSuggestions = 0;
+                            int totalAcceptances = 0;
+                            int totalLinesSuggested = 0;
+                            int totalLinesAccepted = 0;
+
+                            foreach (var editor in ideMetrics.Editors)
+                            {
+                                foreach (var model in editor.Models)
                                 {
-                                    _suggestionsCountByLanguageEditor.WithLabels(breakdown.Language, breakdown.Editor).Set(breakdown.SuggestionsCount);
-                                    _acceptancesCountByLanguageEditor.WithLabels(breakdown.Language, breakdown.Editor).Set(breakdown.AcceptancesCount);
-                                    _linesSuggestedByLanguageEditor.WithLabels(breakdown.Language, breakdown.Editor).Set(breakdown.LinesSuggested);
-                                    _linesAcceptedByLanguageEditor.WithLabels(breakdown.Language, breakdown.Editor).Set(breakdown.LinesAccepted);
-                                    _activeUsersByLanguageEditor.WithLabels(breakdown.Language, breakdown.Editor).Set(breakdown.ActiveUsers);
+                                    foreach (var lang in model.Languages)
+                                    {
+                                        // Update metrics with labels
+                                        _suggestionsCountByLanguageEditor
+                                            .WithLabels(lang.Name, editor.Name)
+                                            .Set(lang.TotalCodeSuggestions);
+
+                                        _acceptancesCountByLanguageEditor
+                                            .WithLabels(lang.Name, editor.Name)
+                                            .Set(lang.TotalCodeAcceptances);
+
+                                        _linesSuggestedByLanguageEditor
+                                            .WithLabels(lang.Name, editor.Name)
+                                            .Set(lang.TotalCodeLinesSuggested);
+
+                                        _linesAcceptedByLanguageEditor
+                                            .WithLabels(lang.Name, editor.Name)
+                                            .Set(lang.TotalCodeLinesAccepted);
+
+                                        _activeUsersByLanguageEditor
+                                            .WithLabels(lang.Name, editor.Name)
+                                            .Set(lang.TotalEngagedUsers);
+
+                                        // Also add to totals
+                                        totalSuggestions += lang.TotalCodeSuggestions;
+                                        totalAcceptances += lang.TotalCodeAcceptances;
+                                        totalLinesSuggested += lang.TotalCodeLinesSuggested;
+                                        totalLinesAccepted += lang.TotalCodeLinesAccepted;
+                                    }
                                 }
+                            }
+
+                            _totalSuggestions.Set(totalSuggestions);
+                            _totalAcceptances.Set(totalAcceptances);
+                            _totalLinesSuggested.Set(totalLinesSuggested);
+                            _totalLinesAccepted.Set(totalLinesAccepted);
+
+                            // Chat metrics
+                            _totalChatEngagedUsers.Set(latestMetrics.CopilotIdeChat.TotalEngagedUsers);
+                            int totalChats = latestMetrics.CopilotIdeChat.Editors
+                                .SelectMany(e => e.Models)
+                                .Sum(m => m.TotalChats);
+                            _totalChats.Set(totalChats);
                         }
                     }
                     else
@@ -122,60 +161,99 @@ namespace GhCopilotMetricsExporter.Services
         }
     }
 
-    public class CopilotUsageMetrics
-    {
-        [JsonPropertyName("day")]
-        public string Day { get; set; }
+public class CopilotUsageMetrics
+{
+    [JsonPropertyName("date")]
+    public string Date { get; set; }
 
-        [JsonPropertyName("total_suggestions_count")]
-        public int TotalSuggestionsCount { get; set; }
+    [JsonPropertyName("total_active_users")]
+    public int TotalActiveUsers { get; set; }
 
-        [JsonPropertyName("total_acceptances_count")]
-        public int TotalAcceptancesCount { get; set; }
+    [JsonPropertyName("total_engaged_users")]
+    public int TotalEngagedUsers { get; set; }
 
-        [JsonPropertyName("total_lines_suggested")]
-        public int TotalLinesSuggested { get; set; }
+    [JsonPropertyName("copilot_ide_code_completions")]
+    public IdeCodeCompletions CopilotIdeCodeCompletions { get; set; }
 
-        [JsonPropertyName("total_lines_accepted")]
-        public int TotalLinesAccepted { get; set; }
+    [JsonPropertyName("copilot_ide_chat")]
+    public IdeChat CopilotIdeChat { get; set; }
+}
 
-        [JsonPropertyName("total_active_users")]
-        public int TotalActiveUsers { get; set; }
+public class IdeCodeCompletions
+{
+    [JsonPropertyName("total_engaged_users")]
+    public int TotalEngagedUsers { get; set; }
 
-        [JsonPropertyName("total_chat_acceptances")]
-        public int TotalChatAcceptances { get; set; }
+    [JsonPropertyName("editors")]
+    public List<Editor> Editors { get; set; }
+}
 
-        [JsonPropertyName("total_chat_turns")]
-        public int TotalChatTurns { get; set; }
+public class Editor
+{
+    [JsonPropertyName("name")]
+    public string Name { get; set; }
 
-        [JsonPropertyName("total_active_chat_users")]
-        public int TotalActiveChatUsers { get; set; }
+    [JsonPropertyName("total_engaged_users")]
+    public int TotalEngagedUsers { get; set; }
 
-        [JsonPropertyName("breakdown")]
-        public List<Breakdown> Breakdown { get; set; }
-    }
+    [JsonPropertyName("models")]
+    public List<Model> Models { get; set; }
+}
 
-    public class Breakdown
-    {
-        [JsonPropertyName("language")]
-        public string Language { get; set; }
+public class Model
+{
+    [JsonPropertyName("name")]
+    public string Name { get; set; }
 
-        [JsonPropertyName("editor")]
-        public string Editor { get; set; }
+    [JsonPropertyName("languages")]
+    public List<Language> Languages { get; set; }
 
-        [JsonPropertyName("suggestions_count")]
-        public int SuggestionsCount { get; set; }
+    [JsonPropertyName("total_engaged_users")]
+    public int TotalEngagedUsers { get; set; }
+}
 
-        [JsonPropertyName("acceptances_count")]
-        public int AcceptancesCount { get; set; }
+public class Language
+{
+    [JsonPropertyName("name")]
+    public string Name { get; set; }
 
-        [JsonPropertyName("lines_suggested")]
-        public int LinesSuggested { get; set; }
+    [JsonPropertyName("total_engaged_users")]
+    public int TotalEngagedUsers { get; set; }
 
-        [JsonPropertyName("lines_accepted")]
-        public int LinesAccepted { get; set; }
+    [JsonPropertyName("total_code_suggestions")]
+    public int TotalCodeSuggestions { get; set; }
 
-        [JsonPropertyName("active_users")]
-        public int ActiveUsers { get; set; }
-    }
+    [JsonPropertyName("total_code_acceptances")]
+    public int TotalCodeAcceptances { get; set; }
+
+    [JsonPropertyName("total_code_lines_suggested")]
+    public int TotalCodeLinesSuggested { get; set; }
+
+    [JsonPropertyName("total_code_lines_accepted")]
+    public int TotalCodeLinesAccepted { get; set; }
+}
+
+public class IdeChat
+{
+    [JsonPropertyName("total_engaged_users")]
+    public int TotalEngagedUsers { get; set; }
+
+    [JsonPropertyName("editors")]
+    public List<ChatEditor> Editors { get; set; }
+}
+
+public class ChatEditor
+{
+    [JsonPropertyName("name")]
+    public string Name { get; set; }
+
+    [JsonPropertyName("models")]
+    public List<ChatModel> Models { get; set; }
+}
+
+public class ChatModel
+{
+    [JsonPropertyName("total_chats")]
+    public int TotalChats { get; set; }
+}
 }
